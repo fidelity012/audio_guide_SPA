@@ -1,0 +1,23 @@
+# Python Virtual Environments
+venv/
+.venv/
+env/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary / Test Audio Outputs
+test_*.wav
+test_*.mp3
+output.wav
+output.mp3
+
+# System & Editor Artifacts
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.vscode/
+.idea/

@@ -1,0 +1,336 @@
+@media (min-width: 601px) {
+  body {
+    display: none !important;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #F5F2ED;
+  color: #2E2E2E;
+}
+
+html {
+  font-size: 1.1rem;
+}
+
+img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.slide-image-styling {
+  width: 100%;
+  /* Prevents flex width from collapsing to 0 */
+  max-width: 350px;
+  /* Keeps it proportional and matching the audio player */
+  height: 12rem;
+  min-height: 12rem;
+  /* Prevents flex height from collapsing to 0 */
+  flex-shrink: 0;
+  /* Prevents flex container from shrinking image to 0 when text overflows */
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/*
+* ======================================================
+*  Slide Images for Audio Guide
+* ======================================================
+*/
+/* #region */
+
+/* == [ Prehistory ] ==================================== */
+.slide-image-10 {
+  background: url("1_center/img/img_welcome.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-11 {
+  background: url("1_center/img/img_Mesolithic.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-12 {
+  background: url("1_center/img/img_Starcevo.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-13 {
+  background: url("1_center/img/img_Vinca.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-14 {
+  background: url("1_center/img/img_Belovode.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-15 {
+  background: url("1_center/img/img_Eneolit.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-16 {
+  background: url("1_center/img/img_BronzeAge.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-17 {
+  background: url("1_center/img/img_ZutoBrdo.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* == [ Viminacium ] ==================================== */
+
+.slide-image-21 {
+  background: url("2_west_part/img/img_Viminacium2.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-22 {
+  background: url("2_west_part/img/vim_knife-x3.webp");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-23 {
+  background: url("2_west_part/img/vim-novac-x2.webp");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-24 {
+  background: url("2_west_part/img/vim_medicine-x3.webp");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* == [ Religion ] ====================================== */
+
+.slide-image-31 {
+  background: url("3_east_part/img/vimi-1.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.slide-image-32 {
+  background: url("3_east_part/img/religion2.png");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+/* #endregion */
+
+/*
+ * ======================================================
+ *  Text
+ * ======================================================
+ */
+.guide-text h2 {
+  text-align: left;
+}
+
+.guide-text {
+  text-align: justify;
+  background-color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  /* overflow: visible; */
+  transform: translate(0%, -5%);
+  flex-shrink: 0;
+}
+
+/* #region swiper */
+/* ----------------------------------------------------- */
+
+.swiper-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Add this to prevent scrolling of container */
+}
+
+.swiper-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 60px 1rem 1rem 1rem;
+  /* Top padding = pagination height (28px) + spacing (20px) */
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Smooth scrolling on iOS */
+}
+
+.slide-title {
+  margin: 12px 0 8px;
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.slide-text {
+  margin: 8px 0;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.swiper-pagination {
+  position: fixed;
+  top: 0 !important;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 6px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 28px;
+  /* Fixed compact height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swiper-pagination-bullet {
+  margin: 0 4px !important;
+}
+
+.swiper-pagination-bullet-active {
+  background-color: rgba(198, 93, 59, 1) !important;
+}
+
+/* #endregion swiper */
+/* ------------------------------------------------- */
+
+/* \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ */
+/* #region audio player */
+/* ---------------------------------------------------- */
+
+/* Audio player container */
+.audio-player {
+  width: 100%;
+  max-width: 350px;
+  margin: 2rem auto;
+  padding: 10px;
+  transform: translate(0%, -30%);
+  flex-shrink: 0;
+}
+
+/* Style the audio element and its controls */
+audio {
+  width: 100%;
+}
+
+/* background color */
+audio::-webkit-media-controls-panel {
+  background-color: rgba(198, 93, 59, 1);
+  border-radius: 4px;
+}
+
+/* player button */
+audio::-webkit-media-controls-play-button {
+  background-color: #ffffff;
+  border-radius: 50%;
+}
+
+audio::-webkit-media-controls-play-button:hover {
+  background-color: #ffffff;
+}
+
+/* timer color */
+audio::-webkit-media-controls-current-time-display,
+audio::-webkit-media-controls-time-remaining-display {
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+}
+
+/* timeline color */
+audio::-webkit-media-controls-timeline {
+  /* background-color: rgba(198, 93, 59, 0.5); */
+  border-radius: 2px;
+}
+
+audio::-webkit-media-controls-timeline-container {
+  padding: 0 10px;
+}
+
+audio::-webkit-media-controls-volume-slider {
+  background-color: #ddd;
+  border-radius: 2px;
+  padding: 0 10px;
+  /* Doubled from 5px */
+}
+
+/* #endregion */
+/* \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ */
+
+/*
+ * ======================================================
+ *  WhisperX Highlighting UX & End Notices
+ * ======================================================
+ */
+
+.slide-subtitle {
+  margin-top: -0.5rem;
+  margin-bottom: 0.75rem;
+  text-align: left;
+}
+
+/* End-of-room prompt on the final slide of each gallery */
+.room-end-notice {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #F5F2ED;
+  border-left: 4px solid rgba(198, 93, 59, 1);
+  border-radius: 0.25rem;
+  font-size: 0.9rem;
+  font-style: italic;
+  text-align: left;
+  color: #2E2E2E;
+}
+
+/* WhisperX Sentence-Level Highlighting (.cue spans) */
+.cue {
+  transition: opacity 0.25s ease, background-color 0.25s ease;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Subtle active highlight that acts as a visual bookmark without screen-trapping */
+.cue.active {
+  background-color: rgba(198, 93, 59, 0.14);
+  box-shadow: -3px 0 0 rgba(198, 93, 59, 1);
+}
