@@ -1,22 +1,26 @@
-*Create working directory:*
+# Shell Commands
 
+### Navigate to working directory:
 
+```powershell
+cd C:\Users\marko\OneDrive\_DEV\audio_vodic\audio_guide_SPA
+```
 
-&#x09;cd C:\\Users\\marko\\OneDrive\\\_DEV\\audio\_vodic\\audio\_guide\_SPA
+### Option A: Run directly using venv Python (Recommended - bypasses script execution policies):
 
+```powershell
+.\venv\Scripts\python.exe gui_tts.py
+```
 
+### Option B: Activate virtual environment & run:
 
-*Activate virtual environment:*
+If PowerShell blocks `Activate.ps1` (`PSSecurityException` / "running scripts is disabled"):
 
+```powershell
+# Allow script execution for your user account (run once):
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
-
-&#x09;.\\venv\\Scripts\\activate
-
-
-
-*Execute text to audio script GUI:*
-
-
-
-&#x09;python gui\_tts.py
-
+# Then activate and run:
+.\venv\Scripts\activate
+python gui_tts.py
+```
