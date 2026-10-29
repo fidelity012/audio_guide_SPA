@@ -3,13 +3,13 @@
 ### Navigate to working directory:
 
 ```powershell
-cd C:\Users\marko\OneDrive\_DEV\audio_vodic\audio_guide_SPA
+cd C:\audio_guide_SPA
 ```
 
 ### Option A: Run directly using venv Python (Recommended - bypasses script execution policies):
 
 ```powershell
-.\venv\Scripts\python.exe gui_tts.py
+        .\venv\Scripts\python.exe gui_tts.py
 ```
 
 ### Option B: Activate virtual environment & run:

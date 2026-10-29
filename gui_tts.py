@@ -16,7 +16,8 @@ os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 # =====================================================================
 # 0. DIRECTORY & ENCODING CONFIGURATION
 # =====================================================================
-OUTPUT_DIR = r"C:\Users\marko\OneDrive\_DEV\audio_vodic\audio_guide_SPA\audio_output"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(BASE_DIR, "audio_output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 DEFAULT_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "output.mp3")
 
