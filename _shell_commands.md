@@ -1,11 +1,15 @@
- Working folder
+Activate local venv
 
-                
+.\venv\Scripts\activate
 
- Activate local venv
+    ACTIVATE KOKORO TTS:
+gui_tts.py
 
- .\venv\Scripts\activate
+    local python hosting:
+python -m http.server 8000
 
- Activate KokoroTTS:
+    PYTHON LOCAL HOST ADDRESS
+http://localhost:8000/test_player.html
 
- gui_tts.py
+    FORCED ALIGNMENT DEMO
+python align_demo.py
