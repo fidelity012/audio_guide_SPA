@@ -22,6 +22,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MANUSCRIPTS_DIR = os.path.join(BASE_DIR, "manuscripts")
 OUTPUT_DIR = os.path.join(BASE_DIR, "audio_output")
+DEFAULT_LEXICON_PATH = os.path.join(BASE_DIR, "lexicon", "lexicon.json")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 SAMPLE_RATE = 24000
@@ -30,8 +31,37 @@ WHISPER_DEVICE = "cpu"
 WHISPER_COMPUTE_TYPE = "int8"
 WHISPER_BATCH_SIZE = 4
 
+WORD_RE = r"[A-Za-zČĆŽŠĐčćžšđ]+"
+
 # =====================================================================
-# 1. PHONETIC & NUMERICAL NORMALIZATION (from gui_tts.py)
+# 1. PER-MUSEUM LEXICON (lexicon.json)
+# =====================================================================
+def load_lexicon(path: str = None) -> dict:
+    """
+    Loads the museum-specific pronunciation lexicon. Keys are lowercase.
+      serbian_words      : names converted with the rule-based Serbian -> IPA converter
+      diacritic_restore  : ASCII spelling -> true spelling (pronunciation only)
+      ipa                : hand-written IPA overrides (win over everything else)
+      roman_exclude      : extra words after which a Roman numeral is NOT expanded
+    A missing file is fine: the generic rules still run.
+    """
+    path = path or DEFAULT_LEXICON_PATH
+    lex = {"serbian_words": set(), "diacritic_restore": {}, "ipa": {}, "roman_exclude": set()}
+    if not os.path.exists(path):
+        print(f"[LEXICON] Not found at {path}; using generic rules only.")
+        return lex
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    lex["serbian_words"] = {w.lower() for w in data.get("serbian_words", [])}
+    lex["diacritic_restore"] = {k.lower(): v for k, v in data.get("diacritic_restore", {}).items()}
+    lex["ipa"] = {k.lower(): v for k, v in data.get("ipa", {}).items()}
+    lex["roman_exclude"] = {w.lower() for w in data.get("roman_exclude", [])}
+    print(f"[LEXICON] Loaded {path}: {len(lex['serbian_words'])} Serbian, "
+          f"{len(lex['ipa'])} IPA, {len(lex['diacritic_restore'])} restore entries.")
+    return lex
+
+# =====================================================================
+# 2. TEXT NORMALIZATION FOR TTS (display text is never touched)
 # =====================================================================
 ROMAN_ORDINALS = {
     'I': 'First', 'II': 'Second', 'III': 'Third', 'IV': 'Fourth',
@@ -42,64 +72,72 @@ ROMAN_ORDINALS = {
     'XIX': 'Nineteenth', 'XX': 'Twentieth'
 }
 
-CUSTOM_SERBIAN_WORDS = {
-    "belovode", "kostolac", "vlasac", "padina", "dubravica", "drmno",
-    "golubac", "dubovac", "klenovnik", "usije", "salakovac", "trnjane",
-    "kasidol", "klenje", "leskovac", "tabanovac", "krvije", "stubline",
-    "drenovac", "vatin", "gava", "brdo",
-    "morava", "mlava", "busur", "beljanica",
-    "krstic", "jacanovic", "sljivar"
+ROMAN_CARDINALS = {
+    'I': 'One', 'II': 'Two', 'III': 'Three', 'IV': 'Four', 'V': 'Five',
+    'VI': 'Six', 'VII': 'Seven', 'VIII': 'Eight', 'IX': 'Nine', 'X': 'Ten',
+    'XI': 'Eleven', 'XII': 'Twelve', 'XIII': 'Thirteen', 'XIV': 'Fourteen',
+    'XV': 'Fifteen', 'XVI': 'Sixteen', 'XVII': 'Seventeen', 'XVIII': 'Eighteen',
+    'XIX': 'Nineteen', 'XX': 'Twenty'
 }
 
-SPECIAL_TERMS = {
-    "moesia": "[Moesia](/miːʃə/)",
-    "margum": "[Margum](/mɑːrɡʊm/)",
-    "lederata": "[Lederata](/lɛdɛrɑːtɑː/)",
-    "pincum": "[Pincum](/pɪŋkʊm/)",
-    "cuppae": "[Cuppae](/kʊpaɪ/)",
-    "novae": "[Novae](/noʊvaɪ/)",
-    "kaliste": "[Kalište](/kɑːliːʃtɛ/)",
-    "kalište": "[Kalište](/kɑːliːʃtɛ/)",
-    "mansio": "[Mansio](/mɑːnsiːoʊ/)",
-    "pagus": "[Pagus](/pɑːɡʊs/)",
-    "castrum": "[castrum](/kɑːstrʊm/)",
-    "castra": "[castra](/kɑːstrɑː/)",
-    "canabae": "[canabae](/kɑːnɑːbaɪ/)",
-    "legionaris": "[legionaris](/lɛɡiːoʊnɑːrɪs/)",
-    "oppidum": "[oppidum](/oʊpiːdʊm/)",
-    "castellum": "[castellum](/kɑːstɛlʊm/)",
-    "castella": "[castella](/kɑːstɛlɑː/)",
-    "vici": "[vici](/viːkiː/)",
-    "civitates": "[civitates](/kiːviːtɑːtɛs/)",
-    "aesculapius": "[Aesculapius](/iːskjuːlɑːpiːʊs/)",
-    "chirurgus": "[chirurgus](/kiːrʊrɡʊs/)",
-    "ocularius": "[ocularius](/oʊkjuːlɑːriːʊs/)",
-    "steatopygous": "[steatopygous](/stiːətəʊpaɪɡəs/)",
+# Valid Roman numeral (uppercase only, non-empty)
+ROMAN = r'(?=[IVXLCDM])M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})'
+
+# Words after which a numeral is a label, not a regnal number ("World War II")
+DEFAULT_ROMAN_EXCLUDE = {
+    "war", "world", "chapter", "part", "phase", "level", "act", "table", "figure", "fig",
+    "vol", "volume", "section", "type", "group", "class", "stage", "period", "room",
+    "gallery", "hall", "size", "grade", "tier", "page", "plate", "wave", "operation",
+    "legion", "legions",
 }
 
-def expand_roman_numerals(text: str) -> str:
-    """Expands Roman numerals for military units and historical rulers."""
-    def replace_legion_pair(m):
-        prefix, n1, conn, n2 = m.group(1), m.group(2).upper(), m.group(3), m.group(4).upper()
-        return f"{prefix} {ROMAN_ORDINALS.get(n1, n1)} {conn} {ROMAN_ORDINALS.get(n2, n2)}"
+def expand_roman_numerals(text: str, extra_exclude=frozenset()) -> str:
+    """
+    Expands Roman numerals, generically:
+      - In any sentence mentioning a legion, a numeral before a capitalised name
+        ("IV Flavia", "and V Macedonica") or right after "legion(s)" becomes an ordinal.
+      - Capitalised name + numeral of 2+ letters ("Gordian III") -> "Gordian the Third".
+    """
+    exclude = DEFAULT_ROMAN_EXCLUDE | {w.lower() for w in extra_exclude}
 
-    text = re.sub(r'\b(legions?)\s+([IVXLCDM]+)\s+(and|&)\s+([IVXLCDM]+)\b', replace_legion_pair, text, flags=re.IGNORECASE)
+    def ordinal(num):
+        return ROMAN_ORDINALS.get(num, num)
 
-    def replace_legion(m):
-        prefix, num = m.group(1), m.group(2).upper()
-        return f"{prefix} {ROMAN_ORDINALS.get(num, num)}"
+    def regnal(m):
+        prev, num = m.group(1), m.group(2)
+        if prev.lower() in exclude or num not in ROMAN_ORDINALS or len(num) < 2:
+            return m.group(0)
+        return f"{prev} the {ROMAN_ORDINALS[num]}"
 
-    text = re.sub(r'\b(legions?)\s+([IVXLCDM]+)\b', replace_legion, text, flags=re.IGNORECASE)
+    pieces = re.split(r'(?<=[.!?])(\s+)', text)   # keeps the whitespace separators
+    out = []
+    for piece in pieces:
+        if re.search(r'\b[Ll]egions?\b', piece):
+            # After the word "legion(s)": cardinal ("Legion Seven Claudia").
+            # Before it ("the VII Claudia and IV Flavia legions"): ordinal ("Seventh").
+            def legion_num(m, whole=piece):
+                num = m.group(1)
+                after_legion = re.search(r'\b[Ll]egions?\b', whole[:m.start()])
+                return (ROMAN_CARDINALS if after_legion else ROMAN_ORDINALS).get(num, num)
+            piece = re.sub(rf'\b({ROMAN})\b(?=\s+[A-Z])', legion_num, piece)
+            # "Legion IV and XIII", "legions IV, V and VI": every numeral in the list
+            chain = rf'(\b[Ll]egions?\s+)({ROMAN}(?:\s*(?:,|and|&)\s*(?:and\s+)?{ROMAN})*)\b'
+            piece = re.sub(chain,
+                           lambda m: m.group(1) + re.sub(rf'\b({ROMAN})\b',
+                                                         lambda n: ROMAN_CARDINALS.get(n.group(1), n.group(1)),
+                                                         m.group(2)),
+                           piece)
+        piece = re.sub(rf'\b([A-Z][a-z]+)\s+({ROMAN})\b', regnal, piece)
+        out.append(piece)
+    return ''.join(out)
 
-    rulers = (
-        r'(?:Gordian|Antoninus|Hadrian|Justinian|Trajan|Severus|'
-        r'Merneptah|Ramesses|Constantine|Diocletian|Claudius|Marcus\s+Aurelius)'
-    )
-    def replace_ruler(m):
-        ruler, num = m.group(1), m.group(2).upper()
-        return f"{ruler} the {ROMAN_ORDINALS.get(num, num)}"
-
-    text = re.sub(rf'\b({rulers})\s+([IVXLCDM]+)\b', replace_ruler, text, flags=re.IGNORECASE)
+def normalize_numbers_and_units(text: str) -> str:
+    """Glued eras, numeric ranges, 'c.' and common units, for speech only."""
+    text = re.sub(r'(?<=\d)(AD|BC|BCE|CE)\b', r' \1', text)          # 117AD -> 117 AD
+    text = re.sub(r'(?<=\d)\s*[–—-]\s*(?=\d)', ' to ', text)          # 4500–2200 -> 4500 to 2200
+    text = re.sub(r'\bc\.\s*(?=\d)', 'circa ', text)                  # c. 300 -> circa 300
+    text = re.sub(r'(?<=\d)\s*km\b', ' kilometers', text)
+    text = re.sub(r'(?<=\d)\s*m\b(?!\w)', ' meters', text)
     return text
 
 def serbian_to_kokoro_ipa(word: str) -> str:
@@ -112,6 +150,9 @@ def serbian_to_kokoro_ipa(word: str) -> str:
     for s, ipa in pairs:
         clean = clean.replace(s, ipa)
 
+    # Kokoro's vocab has no ASCII 'g'; it needs IPA 'ɡ' (U+0261), else the sound is dropped.
+    clean = clean.replace('g', 'ɡ')
+
     clean = re.sub(r'(^|[^aeiou])r([^aeiou]|$)', r'\1ər\2', clean)
 
     vowels = [('a', 'ɑː'), ('e', 'ɛ'), ('i', 'iː'), ('o', 'oʊ'), ('u', 'uː')]
@@ -120,29 +161,98 @@ def serbian_to_kokoro_ipa(word: str) -> str:
 
     return clean
 
-def process_text(text: str) -> str:
-    """Normalizes Roman numerals, Latin archeological terms, and Serbian proper nouns."""
-    text = expand_roman_numerals(text)
+def process_text(text: str, lex: dict) -> str:
+    """Builds the TTS-only text: numerals, dates, units, then lexicon pronunciation tags."""
+    text = expand_roman_numerals(text, lex["roman_exclude"])
+    text = normalize_numbers_and_units(text)
 
-    for term, ipa_override in SPECIAL_TERMS.items():
-        text = re.sub(rf'\b{term}\b', ipa_override, text, flags=re.IGNORECASE)
-
-    pattern = r'(\[[^\]]+\]\(/[^/]+/\))|([a-zA-ZčćžšđČĆŽŠĐ]+)'
+    pattern = rf'(\[[^\]]+\]\(/[^/]+/\))|({WORD_RE})'
 
     def replace_match(match):
         tagged_block = match.group(1)
         if tagged_block:
             return tagged_block
         raw = match.group(2)
-        lower = raw.lower()
-        if re.search(r'[čćžšđČĆŽŠĐ]', raw) or lower in CUSTOM_SERBIAN_WORDS:
-            return f"[{raw}](/{serbian_to_kokoro_ipa(raw)}/)"
+        low = raw.lower()
+        if low in lex["ipa"]:
+            return f"[{raw}](/{lex['ipa'][low]}/)"
+        spelling = lex["diacritic_restore"].get(low)
+        if spelling or low in lex["serbian_words"] or re.search(r'[čćžšđČĆŽŠĐ]', raw):
+            return f"[{raw}](/{serbian_to_kokoro_ipa(spelling or raw)}/)"
         return raw
 
     return re.sub(pattern, replace_match, text)
 
 # =====================================================================
-# 2. AUDIO ENCODING (MP3 96k mono, 24kHz)
+# 3. SENTENCE SPLITTING (abbreviation- and quote-aware)
+# =====================================================================
+ABBREVIATIONS = {
+    "dr", "mr", "mrs", "ms", "prof", "st", "no", "nos", "vs", "c", "ca", "cf", "fig", "figs",
+    "vol", "approx", "ed", "eds", "pp", "p", "jr", "sr", "e.g", "i.e", "viz", "ca",
+}
+
+def split_sentences(text: str) -> list:
+    """
+    Splits on blank lines (so headings stay separate) and on . ! ? followed by an
+    uppercase letter, digit or opening quote. Does not split after abbreviations,
+    single initials, or when the next word is lowercase ("in 1952. by Professor").
+    Closing quotes/brackets after the period stay with the sentence.
+    """
+    sentences = []
+    for para in re.split(r'\n\s*\n', text):
+        para = para.strip()
+        if not para:
+            continue
+        start = 0
+        for m in re.finditer(r'[.!?]+["”’\')\]]*\s+', para):
+            nxt = para[m.end():m.end() + 1]
+            if not nxt or not (nxt.isupper() or nxt.isdigit() or nxt in '"“‘\'(['):
+                continue
+            tail = para[start:m.start()].split()
+            last = tail[-1] if tail else ""
+            low = last.lower().strip('("“‘\'[')
+            if m.group(0).startswith('.') and not m.group(0).startswith('..'):
+                if low in ABBREVIATIONS or (len(low) == 1 and last.strip('("“‘\'[').isupper()):
+                    continue
+            sentences.append(para[start:m.end()].strip())
+            start = m.end()
+        rest = para[start:].strip()
+        if rest:
+            sentences.append(rest)
+    return sentences
+
+# =====================================================================
+# 4. UNKNOWN-WORD REPORT
+# =====================================================================
+def find_unknown_words(raw_text: str, lex: dict, tts_pipeline) -> dict:
+    """
+    Words Kokoro's English dictionary doesn't know and the lexicon doesn't cover.
+    These are the ones likely to be mispronounced. Falls back to 'capitalised
+    mid-sentence words' if the dictionary can't be reached.
+    """
+    covered = set(lex["ipa"]) | set(lex["serbian_words"]) | set(lex["diacritic_restore"])
+    known = None
+    try:
+        g2p_lex = tts_pipeline.g2p.lexicon
+        dicts = (g2p_lex.golds, g2p_lex.silvers)
+        known = lambda w: any((w in d) or (w.lower() in d) for d in dicts)
+    except Exception:
+        known = None
+
+    found = {}
+    for sent in split_sentences(raw_text):
+        for i, w in enumerate(re.findall(WORD_RE, sent)):
+            low = w.lower()
+            if len(w) < 3 or w.isupper() or low in covered or re.search(r'[čćžšđČĆŽŠĐ]', w):
+                continue
+            unknown = (not known(w)) if known else (w[0].isupper() and i > 0)
+            if unknown:
+                entry = found.setdefault(low, {"word": w, "count": 0, "context": sent[:80]})
+                entry["count"] += 1
+    return dict(sorted(found.items()))
+
+# =====================================================================
+# 5. AUDIO ENCODING (MP3 96k mono, 24kHz)
 # =====================================================================
 def save_mp3(audio_data: np.ndarray, output_path: str, sample_rate: int = SAMPLE_RATE, bitrate: str = BITRATE):
     """Pipes raw PCM float32 directly through FFmpeg to produce a 96k mono MP3."""
@@ -176,7 +286,7 @@ def save_mp3(audio_data: np.ndarray, output_path: str, sample_rate: int = SAMPLE
             raise RuntimeError(f"FFmpeg not found. Saved fallback WAV: {fallback_wav}")
 
 # =====================================================================
-# 3. TEXT COMPARISON NORMALIZER (from align_demo.py)
+# 6. TEXT COMPARISON NORMALIZER (from align_demo.py)
 # =====================================================================
 def normalize_word(w: str) -> str:
     """Normalizes tokens for acoustic-to-manuscript sequence matching."""
@@ -187,28 +297,37 @@ def normalize_word(w: str) -> str:
     return re.sub(r'[^\w]', '', t)
 
 # =====================================================================
-# 4. MASTER SINGLE-STOP BUILD ENGINE
+# 7. MASTER SINGLE-STOP BUILD ENGINE
 # =====================================================================
 def build_stop(
     stop_name: str = "introduction",
     voice: str = "af_bella",
     tts_pipeline: KPipeline = None,
     whisper_model=None,
-    align_model_tuple=None
+    align_model_tuple=None,
+    lexicon: dict = None,
+    check_only: bool = False
 ):
     """
     Executes the entire generation pipeline for a single stop:
     1. Reads manuscripts/<stop_name>.txt
-    2. Runs phonetic normalization and Kokoro synthesis -> audio_output/<stop_name>.mp3
-    3. Runs WhisperX acoustic transcription and global opcode alignment
-    4. Writes synchronized cues -> audio_output/<stop_name>_cues.json
+    2. Reports words the TTS is likely to mispronounce (audio_output/<stop_name>_review.txt)
+    3. Runs phonetic normalization and Kokoro synthesis -> audio_output/<stop_name>.mp3
+    4. Runs WhisperX acoustic transcription and global opcode alignment
+    5. Writes synchronized cues -> audio_output/<stop_name>_cues.json
+    With check_only=True, stops after step 2 (writes <stop_name>_tts_text.txt for inspection).
     """
     manuscript_path = os.path.join(MANUSCRIPTS_DIR, f"{stop_name}.txt")
     mp3_path = os.path.join(OUTPUT_DIR, f"{stop_name}.mp3")
     cues_path = os.path.join(OUTPUT_DIR, f"{stop_name}_cues.json")
+    review_path = os.path.join(OUTPUT_DIR, f"{stop_name}_review.txt")
+    tts_text_path = os.path.join(OUTPUT_DIR, f"{stop_name}_tts_text.txt")
 
     if not os.path.exists(manuscript_path):
         raise FileNotFoundError(f"Manuscript not found at: {manuscript_path}")
+
+    if lexicon is None:
+        lexicon = load_lexicon()
 
     print(f"\n[{stop_name.upper()}] Reading manuscript: {manuscript_path}")
     with open(manuscript_path, "r", encoding="utf-8") as f:
@@ -219,9 +338,26 @@ def build_stop(
         print(f"[{stop_name.upper()}] Initializing Kokoro TTS...")
         tts_pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
 
-    print(f"[{stop_name.upper()}] Normalizing text and synthesizing audio ({voice})...")
-    normalized_text = process_text(raw_text)
+    unknown = find_unknown_words(raw_text, lexicon, tts_pipeline)
+    with open(review_path, "w", encoding="utf-8") as f:
+        for e in unknown.values():
+            f.write(f"{e['word']}\t{e['count']}\t{e['context']}\n")
+    if unknown:
+        words = ", ".join(e["word"] for e in unknown.values())
+        print(f"[{stop_name.upper()}] REVIEW {len(unknown)} word(s) not in the TTS dictionary or lexicon: {words}")
+        print(f"[{stop_name.upper()}] Listen to them; fix bad ones in lexicon.json. Details: {review_path}")
+    else:
+        print(f"[{stop_name.upper()}] No unknown words.")
 
+    normalized_text = process_text(raw_text, lexicon)
+
+    if check_only:
+        with open(tts_text_path, "w", encoding="utf-8") as f:
+            f.write(normalized_text)
+        print(f"[{stop_name.upper()}] Check only. TTS text written to: {tts_text_path}")
+        return None, None
+
+    print(f"[{stop_name.upper()}] Synthesizing audio ({voice})...")
     chunks = []
     for _, _, audio_chunk in tts_pipeline(normalized_text, voice=voice, speed=1.0):
         chunks.append(audio_chunk)
@@ -234,7 +370,7 @@ def build_stop(
     print(f"[{stop_name.upper()}] MP3 saved to: {mp3_path}")
 
     # --- Phase B: Token & Sentence Preparation ---
-    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', raw_text) if s.strip()]
+    sentences = split_sentences(raw_text)
     ms_words_norm = []
     sentence_word_ranges = []
 
@@ -332,12 +468,15 @@ def build_stop(
     return mp3_path, cues_path
 
 # =====================================================================
-# 5. CLI INTERFACE
+# 8. CLI INTERFACE
 # =====================================================================
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Headless single-stop build engine for museum audio guides.")
     parser.add_argument("--stop", type=str, default="introduction", help="Stop name matching manuscript filename (without .txt)")
     parser.add_argument("--voice", type=str, default="af_bella", help="Kokoro voice model identifier")
+    parser.add_argument("--lexicon", type=str, default=None, help="Path to lexicon.json (default: next to this script)")
+    parser.add_argument("--check", action="store_true", help="Only report unknown words and write the TTS text; no audio")
     args = parser.parse_args()
 
-    build_stop(stop_name=args.stop, voice=args.voice)
+    build_stop(stop_name=args.stop, voice=args.voice,
+               lexicon=load_lexicon(args.lexicon), check_only=args.check)
