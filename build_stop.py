@@ -8,29 +8,54 @@ import argparse
 import subprocess
 import numpy as np
 import soundfile as sf
+import torch
 from kokoro import KPipeline
 import whisperx
 
 # =====================================================================
-# 0. ENVIRONMENT & WARNING SUPPRESSION
+# 0. ENVIRONMENT & HARDWARE AUTO-DETECTION
 # =====================================================================
 # Silence PyTorch, HF Hub, TorchCodec, and Lightning console notices
 warnings.filterwarnings("ignore")
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+# Multi-PC hardware selection:
+# - Work PC (RTX 3060 Ti, CC 8.6): CUDA + float16
+# - Home PC (GTX 1080 Ti, CC 6.1): CUDA + int8
+# - Laptop (Ryzen 7 260 CPU): CPU + int8
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+    major_cc = torch.cuda.get_device_capability()[0]
+    COMPUTE_TYPE = "float16" if major_cc >= 7 else "int8"
+else:
+    DEVICE = "cpu"
+    COMPUTE_TYPE = "int8"
+
+# note  --- Directory & Path Configuration ---
+# ---------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Manuscripts directory
 MANUSCRIPTS_DIR = os.path.join(BASE_DIR, "manuscripts")
-OUTPUT_DIR = os.path.join(BASE_DIR, "audio_output")
+# Audio output directory, (.mp3), timestamps (.json), and logs
+OUTPUT_DIR = os.path.join(BASE_DIR, "audio_output")           
+# Museum-specific pronunciation dictionary & phonetic overrides
 DEFAULT_LEXICON_PATH = os.path.join(BASE_DIR, "lexicon", "lexicon.json")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# Ensure output directory exists before generating assets 
+os.makedirs(OUTPUT_DIR, exist_ok=True)                                  
 
-SAMPLE_RATE = 24000
-BITRATE = "96k"
-WHISPER_DEVICE = "cpu"
-WHISPER_COMPUTE_TYPE = "int8"
-WHISPER_BATCH_SIZE = 4
+# --- Audio Output & Alignment Settings ---
+# -----------------------------------------
+SAMPLE_RATE = 24000                  
+BITRATE = "96k"            
+# Device ('cuda' or 'cpu') for WhisperX forced alignment, inherited from hardware detection        
+WHISPER_DEVICE = DEVICE          
+# Numeric precision ('float16' for modern GPUs, 'int8' for older GPUs / CPU)  
+WHISPER_COMPUTE_TYPE = COMPUTE_TYPE  
+# Batch size for WhisperX alignment (higher on GPU for throughput)
+WHISPER_BATCH_SIZE = 8 if DEVICE == "cuda" else 4  
 
+# Regular expression matching words with standard Latin and Serbian diacritics (Č, Ć, Ž, Š, Đ)
 WORD_RE = r"[A-Za-zČĆŽŠĐčćžšđ]+"
 
 # =====================================================================
@@ -39,10 +64,10 @@ WORD_RE = r"[A-Za-zČĆŽŠĐčćžšđ]+"
 def load_lexicon(path: str = None) -> dict:
     """
     Loads the museum-specific pronunciation lexicon. Keys are lowercase.
-      serbian_words      : names converted with the rule-based Serbian -> IPA converter
-      diacritic_restore  : ASCII spelling -> true spelling (pronunciation only)
-      ipa                : hand-written IPA overrides (win over everything else)
-      roman_exclude      : extra words after which a Roman numeral is NOT expanded
+      serbian_words     : names converted with the rule-based Serbian -> IPA converter
+      diacritic_restore : ASCII spelling -> true spelling (pronunciation only)
+      ipa               : hand-written IPA overrides (win over everything else)
+      roman_exclude     : extra words after which a Roman numeral is NOT expanded
     A missing file is fine: the generic rules still run.
     """
     path = path or DEFAULT_LEXICON_PATH
@@ -109,18 +134,15 @@ def expand_roman_numerals(text: str, extra_exclude=frozenset()) -> str:
             return m.group(0)
         return f"{prev} the {ROMAN_ORDINALS[num]}"
 
-    pieces = re.split(r'(?<=[.!?])(\s+)', text)   # keeps the whitespace separators
+    pieces = re.split(r'(?<=[.!?])(\s+)', text)
     out = []
     for piece in pieces:
         if re.search(r'\b[Ll]egions?\b', piece):
-            # After the word "legion(s)": cardinal ("Legion Seven Claudia").
-            # Before it ("the VII Claudia and IV Flavia legions"): ordinal ("Seventh").
             def legion_num(m, whole=piece):
                 num = m.group(1)
                 after_legion = re.search(r'\b[Ll]egions?\b', whole[:m.start()])
                 return (ROMAN_CARDINALS if after_legion else ROMAN_ORDINALS).get(num, num)
             piece = re.sub(rf'\b({ROMAN})\b(?=\s+[A-Z])', legion_num, piece)
-            # "Legion IV and XIII", "legions IV, V and VI": every numeral in the list
             chain = rf'(\b[Ll]egions?\s+)({ROMAN}(?:\s*(?:,|and|&)\s*(?:and\s+)?{ROMAN})*)\b'
             piece = re.sub(chain,
                            lambda m: m.group(1) + re.sub(rf'\b({ROMAN})\b',
@@ -133,9 +155,9 @@ def expand_roman_numerals(text: str, extra_exclude=frozenset()) -> str:
 
 def normalize_numbers_and_units(text: str) -> str:
     """Glued eras, numeric ranges, 'c.' and common units, for speech only."""
-    text = re.sub(r'(?<=\d)(AD|BC|BCE|CE)\b', r' \1', text)          # 117AD -> 117 AD
-    text = re.sub(r'(?<=\d)\s*[–—-]\s*(?=\d)', ' to ', text)          # 4500–2200 -> 4500 to 2200
-    text = re.sub(r'\bc\.\s*(?=\d)', 'circa ', text)                  # c. 300 -> circa 300
+    text = re.sub(r'(?<=\d)(AD|BC|BCE|CE)\b', r' \1', text)
+    text = re.sub(r'(?<=\d)\s*[–—-]\s*(?=\d)', ' to ', text)
+    text = re.sub(r'\bc\.\s*(?=\d)', 'circa ', text)
     text = re.sub(r'(?<=\d)\s*km\b', ' kilometers', text)
     text = re.sub(r'(?<=\d)\s*m\b(?!\w)', ' meters', text)
     return text
@@ -150,9 +172,7 @@ def serbian_to_kokoro_ipa(word: str) -> str:
     for s, ipa in pairs:
         clean = clean.replace(s, ipa)
 
-    # Kokoro's vocab has no ASCII 'g'; it needs IPA 'ɡ' (U+0261), else the sound is dropped.
     clean = clean.replace('g', 'ɡ')
-
     clean = re.sub(r'(^|[^aeiou])r([^aeiou]|$)', r'\1ər\2', clean)
 
     vowels = [('a', 'ɑː'), ('e', 'ɛ'), ('i', 'iː'), ('o', 'oʊ'), ('u', 'uː')]
@@ -335,8 +355,8 @@ def build_stop(
 
     # --- Phase A: Kokoro Synthesis ---
     if tts_pipeline is None:
-        print(f"[{stop_name.upper()}] Initializing Kokoro TTS...")
-        tts_pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
+        print(f"[{stop_name.upper()}] Initializing Kokoro TTS ({DEVICE})...")
+        tts_pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M', device=DEVICE)
 
     unknown = find_unknown_words(raw_text, lexicon, tts_pipeline)
     with open(review_path, "w", encoding="utf-8") as f:
@@ -388,7 +408,7 @@ def build_stop(
     audio_duration = round(len(audio) / 16000.0, 2)
 
     if whisper_model is None:
-        print(f"[{stop_name.upper()}] Loading Whisper model (small.en)...")
+        print(f"[{stop_name.upper()}] Loading Whisper model (small.en) [{WHISPER_DEVICE} | {WHISPER_COMPUTE_TYPE}]...")
         whisper_model = whisperx.load_model("small.en", WHISPER_DEVICE, compute_type=WHISPER_COMPUTE_TYPE)
 
     print(f"[{stop_name.upper()}] Transcribing...")

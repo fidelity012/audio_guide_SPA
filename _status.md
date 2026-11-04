@@ -4,8 +4,8 @@ STATUS:
 -- Merged Kokoro TTS with WhisperX 
 </p>
 
-<p class = "bold blue" > 
-? Considering **GPU** acceleration for the script 
+<p class = "bold orange" > 
+implementing **GPU** acceleration for the script 
 </p>
 
 
@@ -20,5 +20,8 @@ STATUS:
 
     .green {
         color: green;
+    }
+    .orange {
+        color: darkorange
     }
 </style>
