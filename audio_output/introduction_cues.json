@@ -1,7 +1,202 @@
 [
   {
-    "start": 0.41,
-    "end": 3.33,
-    "text": "This is a testing ground for new http server."
+    "start": 0.39,
+    "end": 11.56,
+    "text": "For the Roman section, I would again aim for a 30-50% reduction so that each stop remains engaging as an audio guide while preserving the essential historical narrative."
+  },
+  {
+    "start": 12.62,
+    "end": 14.78,
+    "text": "Viminacium: Capital of Upper Moesia"
+  },
+  {
+    "start": 15.97,
+    "end": 24.89,
+    "text": "Viminacium was founded in the mid-1st century AD near modern Kostolac, although an earlier tribal stronghold likely existed on the site."
+  },
+  {
+    "start": 25.93,
+    "end": 34.89,
+    "text": "Established by Legio VII Claudia with support from Legio IV Flavia, it grew into the largest city and administrative center of Upper Moesia."
+  },
+  {
+    "start": 35.63,
+    "end": 41.55,
+    "text": "Alongside the military camp, a civilian settlement known as a canabae legionaris developed."
+  },
+  {
+    "start": 42.56,
+    "end": 51.23,
+    "text": "Viminacium played an important role in Trajan's Dacian Wars and gained municipal status under Emperor Hadrian in 117 AD."
+  },
+  {
+    "start": 52.03,
+    "end": 60.19,
+    "text": "During the Severan dynasty, the city reached its economic peak, becoming a center of trade, craftsmanship, and administration."
+  },
+  {
+    "start": 61.34,
+    "end": 69.4,
+    "text": "In 239 AD, under Gordian III, Viminacium became a Roman colony with the right to mint its own coinage."
+  },
+  {
+    "start": 70.1,
+    "end": 73.68,
+    "text": "By the 4th century, it was also an important episcopal seat."
+  },
+  {
+    "start": 74.69,
+    "end": 83.61,
+    "text": "The city was devastated by the Huns in 441 AD, later restored under Justinian, and finally fell to the Avars in 584."
+  },
+  {
+    "start": 83.77,
+    "end": 89.94,
+    "text": "The arrival of the Slavs in the 7th century marked the end of ancient Viminacium."
+  },
+  {
+    "start": 91.03,
+    "end": 94.53,
+    "text": "Military Presence on the Danube and the Construction of the Limes"
+  },
+  {
+    "start": 95.61,
+    "end": 102.26,
+    "text": "The Roman presence in the region was driven by the need to secure the Danube, the Empire's northern frontier."
+  },
+  {
+    "start": 103.3,
+    "end": 111.98,
+    "text": "Following the division of Moesia in 86 AD, Legio VII Claudia and Legio IV Flavia became the permanent defenders of Upper Moesia."
+  },
+  {
+    "start": 112.82,
+    "end": 123.85,
+    "text": "A network of military camps, towns, forts, and roads was established along the Danube, with Viminacium serving as the region's principal military and administrative center."
+  },
+  {
+    "start": 124.87,
+    "end": 131.01,
+    "text": "The legions built roads connecting frontier settlements and linking the Balkans with the wider Roman world."
+  },
+  {
+    "start": 131.73,
+    "end": 135.11,
+    "text": "These routes encouraged trade as well as military movement."
+  },
+  {
+    "start": 136.14,
+    "end": 142.84,
+    "text": "Viminacium became the leading center of Roman culture, administration, and urban life in Upper Moesia."
+  },
+  {
+    "start": 143.66,
+    "end": 150.89,
+    "text": "Economic prosperity flourished during the 2nd century, though it was disrupted by the crises and invasions of the 3rd century."
+  },
+  {
+    "start": 151.89,
+    "end": 164.56,
+    "text": "The Hunnic invasions of 441 AD destroyed many settlements, while Justinian's restoration efforts briefly revived the region before the arrival of the Slavs marked the end of Antiquity."
+  },
+  {
+    "start": 165.7,
+    "end": 166.76,
+    "text": "Economic Development"
+  },
+  {
+    "start": 167.7,
+    "end": 175.03,
+    "text": "The Danubian frontier became a vibrant contact zone connecting the Balkans with the provinces of the Roman Empire."
+  },
+  {
+    "start": 176.09,
+    "end": 182.45,
+    "text": "From the late 1st century onward, veterans, merchants, and settlers transformed the region's economy."
+  },
+  {
+    "start": 183.19,
+    "end": 190.26,
+    "text": "Prosperity peaked during the 2nd and early 3rd centuries, when Roman culture dominated both public and private life."
+  },
+  {
+    "start": 191.32,
+    "end": 197.02,
+    "text": "Viminacium and Margum became major urban centers whose influence extended into the countryside."
+  },
+  {
+    "start": 197.74,
+    "end": 204.12,
+    "text": "Rich natural resources, strategic trade routes, and municipal privileges encouraged economic growth."
+  },
+  {
+    "start": 205.12,
+    "end": 210.69,
+    "text": "Local workshops produced pottery, bricks, glassware, metal goods, sculptures, and jewelry."
+  },
+  {
+    "start": 211.39,
+    "end": 218.79,
+    "text": "Viminacium's brickworks, operated by both military and private workshops, exported products far beyond Upper Moesia."
+  },
+  {
+    "start": 219.75,
+    "end": 227.59,
+    "text": "Together with its mint and numerous artisan workshops, Viminacium became one of the most important economic centers in the province."
+  },
+  {
+    "start": 228.72,
+    "end": 230.18,
+    "text": "Roman Medicine in Viminacium"
+  },
+  {
+    "start": 231.24,
+    "end": 239.03,
+    "text": "The arrival of the Roman army brought significant social and cultural changes, including the development of professional medicine."
+  },
+  {
+    "start": 240.11,
+    "end": 248.26,
+    "text": "Roman medical practice, strongly influenced by Greek science and the cult of Aesculapius, was regulated by imperial law."
+  },
+  {
+    "start": 249.12,
+    "end": 253.5,
+    "text": "As the provincial capital, Viminacium could support a large number of physicians."
+  },
+  {
+    "start": 254.64,
+    "end": 260.52,
+    "text": "Evidence of advanced medical care comes from several graves belonging to doctors buried with their instruments."
+  },
+  {
+    "start": 261.29,
+    "end": 269.56,
+    "text": "Surgical tools such as probes, tweezers, scalpels, hooks, and cautery instruments reveal a high level of medical expertise."
+  },
+  {
+    "start": 270.63,
+    "end": 276.55,
+    "text": "The most remarkable discovery is the grave of an eye surgeon from the late 1st or early 2nd century."
+  },
+  {
+    "start": 277.27,
+    "end": 286.18,
+    "text": "Buried with a complete medical kit, medicines, and specialized surgical instruments, he treated conditions such as cataracts and eye infections."
+  },
+  {
+    "start": 287.24,
+    "end": 295.34,
+    "text": "These finds demonstrate that Viminacium possessed a sophisticated medical tradition comparable to that of other major Roman cities."
+  },
+  {
+    "start": 296.49,
+    "end": 297.97,
+    "text": "End of the Viminacium section."
+  },
+  {
+    "start": 298.51,
+    "end": 301.57,
+    "text": "Please scan the QR code in the next gallery to continue."
   }
 ]

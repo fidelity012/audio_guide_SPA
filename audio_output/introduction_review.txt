@@ -1,1 +1,33 @@
-http	1	This is a testing ground for new http server.
+Avars	1	The city was devastated by the Huns in 441 AD, later restored under Justinian, a
+brickworks	1	Viminacium's brickworks, operated by both military and private workshops, export
+centuries	1	Prosperity peaked during the 2nd and early 3rd centuries, when Roman culture dom
+cities	1	These finds demonstrate that Viminacium possessed a sophisticated medical tradit
+Claudia	2	Established by Legio VII Claudia with support from Legio IV Flavia, it grew into
+defenders	1	Following the division of Moesia in 86 AD, Legio VII Claudia and Legio IV Flavia
+destroyed	1	The Hunnic invasions of 441 AD destroyed many settlements, while Justinian's res
+devastated	1	The city was devastated by the Huns in 441 AD, later restored under Justinian, a
+dominated	1	Prosperity peaked during the 2nd and early 3rd centuries, when Roman culture dom
+encouraged	2	These routes encouraged trade as well as military movement.
+existed	1	Viminacium was founded in the mid-1st century AD near modern Kostolac, although 
+exported	1	Viminacium's brickworks, operated by both military and private workshops, export
+Gordian	1	In 239 AD, under Gordian III, Viminacium became a Roman colony with the right to
+Hunnic	1	The Hunnic invasions of 441 AD destroyed many settlements, while Justinian's res
+influenced	1	Roman medical practice, strongly influenced by Greek science and the cult of Aes
+Legio	4	Established by Legio VII Claudia with support from Legio IV Flavia, it grew into
+medicines	1	Buried with a complete medical kit, medicines, and specialized surgical instrume
+operated	1	Viminacium's brickworks, operated by both military and private workshops, export
+physicians	1	As the provincial capital, Viminacium could support a large number of physicians
+privileges	1	Rich natural resources, strategic trade routes, and municipal privileges encoura
+products	1	Viminacium's brickworks, operated by both military and private workshops, export
+provinces	1	The Danubian frontier became a vibrant contact zone connecting the Balkans with 
+regulated	1	Roman medical practice, strongly influenced by Greek science and the cult of Aes
+resources	1	Rich natural resources, strategic trade routes, and municipal privileges encoura
+restored	1	The city was devastated by the Huns in 441 AD, later restored under Justinian, a
+revived	1	The Hunnic invasions of 441 AD destroyed many settlements, while Justinian's res
+routes	2	These routes encouraged trade as well as military movement.
+settlers	1	From the late 1st century onward, veterans, merchants, and settlers transformed 
+Severan	1	During the Severan dynasty, the city reached its economic peak, becoming a cente
+Slavs	2	The arrival of the Slavs in the 7th century marked the end of ancient Viminacium
+treated	1	Buried with a complete medical kit, medicines, and specialized surgical instrume
+Viminacium	14	Viminacium: Capital of Upper Moesia
+workshops	3	Local workshops produced pottery, bricks, glassware, metal goods, sculptures, an
