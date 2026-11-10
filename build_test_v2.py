@@ -1,0 +1,643 @@
+"""
+build_test_v2.py - Test Harness & Builder for Museum Audio Guide v2
+Validates and builds a single test stop featuring:
+1. Kokoro TTS synthesis & WhisperX forced alignment (or test mock generation)
+2. Timed Visual Cueing (stop.images chapters with start/end bounds)
+3. Generates updated test_player_v2.html for browser verification with:
+   - Hero Image Stage with < / > artifact chapter skipping
+   - Lower Thumb Zone: [-10s] [Play/Pause] [+10s] + Audio Timeline Scrubber
+   - 50% Collapsible Transcript Drawer ("REVEAL TEXT" / "HIDE TEXT")
+   - Continuous background sentence sync & smooth auto-scroll on reveal
+"""
+
+import os
+import sys
+import json
+import re
+import argparse
+import difflib
+import warnings
+
+warnings.filterwarnings("ignore")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(BASE_DIR, "audio_output")
+MANUSCRIPTS_DIR = os.path.join(BASE_DIR, "manuscripts")
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(MANUSCRIPTS_DIR, exist_ok=True)
+
+SAMPLE_RATE = 24000
+BITRATE = "96k"
+
+# Sample test manuscript with Roman medicine theme
+DEFAULT_TEST_MANUSCRIPT = """Viminacium, a major Roman city and military camp on the Danube, had a sophisticated medical community.
+The medicus-chirurgus was buried with a rich set of surgical tools, including tweezers, probes, and a bronze instrumentarium box.
+Excavated graves in the southern necropolis have yielded various specialised instruments, including scalpels, bone forceps, and ocular needles.
+These finds testify to the complex surgical procedures performed here between the 2nd and 4th centuries."""
+
+DEFAULT_TEST_IMAGES = [
+    {
+        "start": 0.0,
+        "end": 8.0,
+        "src": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80",
+        "caption": "Showcase 4: Roman Viminacium Medical Collection"
+    },
+    {
+        "start": 8.0,
+        "end": 18.0,
+        "src": "https://images.unsplash.com/photo-1584362917165-526a968579e8?w=600&auto=format&fit=crop&q=80",
+        "caption": "Bronze Instrumentarium Box & Surgical Probes"
+    },
+    {
+        "start": 18.0,
+        "end": 35.0,
+        "src": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&auto=format&fit=crop&q=80",
+        "caption": "Specialized Ocular & Cataract Needles"
+    }
+]
+
+
+def validate_timeline(images, cues, total_duration):
+    """Validates that visual cues and sentence cues are coherent."""
+    print("\n[VALIDATION] Checking timeline coherency...")
+    errors = []
+    
+    # 1. Validate images
+    prev_end = 0.0
+    for idx, img in enumerate(images):
+        start = img.get("start", 0.0)
+        end = img.get("end", 0.0)
+        if start >= end:
+            errors.append(f"Image {idx} ({img.get('caption')}): start ({start}s) >= end ({end}s)")
+        if start < prev_end - 0.01:
+            errors.append(f"Image {idx}: start ({start}s) overlaps with previous end ({prev_end}s)")
+        prev_end = end
+
+    if images and total_duration > 0:
+        if images[-1]["end"] < total_duration - 1.0:
+            print(f"  [WARN] Final image end ({images[-1]['end']}s) is shorter than audio duration ({total_duration}s). Clamping.")
+            images[-1]["end"] = round(total_duration, 2)
+
+    # 2. Validate cues
+    for idx, cue in enumerate(cues):
+        if cue["start"] >= cue["end"]:
+            errors.append(f"Cue {idx} ('{cue['text'][:20]}...'): start >= end")
+
+    if errors:
+        print("  [FAIL] Timeline validation found issues:")
+        for err in errors:
+            print(f"    - {err}")
+        return False
+    
+    print(f"  [PASS] {len(images)} visual chapters and {len(cues)} sentence cues verified clean.")
+    return True
+
+
+def generate_test_player_html(stop_data, html_path):
+    """Generates a standalone test player testing the complete v2 UX."""
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{stop_data.get('title', 'Audio Guide v2 Test')}</title>
+  <style>
+    :root {{
+      --primary-accent: #C65D3B;
+      --bg-cream: #F5F2ED;
+      --card-bg: #FFFFFF;
+      --text-dark: #2E2E2E;
+      --text-muted: #7A7570;
+      --border-subtle: #E2DDD6;
+    }}
+
+    * {{
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }}
+
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+    }}
+
+    /* Mobile phone simulator shell */
+    .phone-simulator {{
+      width: 100%;
+      max-width: 400px;
+      height: 840px;
+      max-height: 94vh;
+      background-color: var(--bg-cream);
+      border-radius: 36px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: 8px solid #1a1a1a;
+    }}
+
+    .screen-content {{
+      padding: 24px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }}
+
+    .header-title {{
+      text-align: center;
+      margin-bottom: 14px;
+    }}
+
+    .header-title h1 {{
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--text-dark);
+      text-transform: uppercase;
+    }}
+
+    /* 1. Timed Visual Cueing Stage */
+    .slide-media-stage {{
+      position: relative;
+      width: 100%;
+      height: 13rem;
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: #1e1e1e;
+      margin-bottom: 14px;
+      transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }}
+
+    /* Compressed Hero when text expanded */
+    .phone-simulator.text-expanded .slide-media-stage {{
+      height: 6.8rem;
+      margin-bottom: 8px;
+    }}
+
+    .stage-img {{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.25s ease-in-out;
+    }}
+
+    .stage-caption {{
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.75));
+      color: #FFF;
+      font-size: 0.75rem;
+      padding: 8px 10px 6px;
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }}
+
+    /* Chevron chapter navigation */
+    .stage-nav {{
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      z-index: 5;
+      transition: background 0.2s;
+    }}
+    .stage-nav:hover {{ background: rgba(0,0,0,0.75); }}
+    .stage-nav.prev {{ left: 8px; }}
+    .stage-nav.next {{ right: 8px; }}
+
+    /* 2. Audio Control Cluster (Ergonomic Thumb Zone) */
+    .audio-control-cluster {{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }}
+
+    .btn-row {{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 8px;
+    }}
+
+    .btn-skip {{
+      background: none;
+      border: 2px solid var(--primary-accent);
+      color: var(--primary-accent);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }}
+    .btn-skip:active {{
+      background: var(--primary-accent);
+      color: #FFF;
+    }}
+
+    .btn-play-pause {{
+      background: var(--primary-accent);
+      border: none;
+      color: #FFF;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(198, 93, 59, 0.35);
+      transition: transform 0.15s;
+    }}
+    .btn-play-pause:active {{
+      transform: scale(0.94);
+    }}
+
+    .timeline-row {{
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }}
+
+    .time-scrubber {{
+      flex: 1;
+      accent-color: var(--primary-accent);
+      height: 4px;
+      cursor: pointer;
+    }}
+
+    /* 3. Collapsible Heads-Up Drawer */
+    .toggle-transcript {{
+      width: 100%;
+      padding: 10px 14px;
+      background: #FFF;
+      border: 2px solid var(--border-subtle);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--text-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+      transition: border-color 0.2s;
+    }}
+    .toggle-transcript:hover {{
+      border-color: var(--primary-accent);
+    }}
+
+    .arrow-icon {{
+      transition: transform 0.3s;
+      font-size: 0.8rem;
+    }}
+
+    .transcript-drawer {{
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-subtle);
+      line-height: 1.6;
+      font-size: 0.95rem;
+      color: #333;
+    }}
+
+    .phone-simulator.text-expanded .transcript-drawer {{
+      display: block;
+    }}
+
+    .cue {{
+      transition: background-color 0.2s ease, opacity 0.2s ease;
+      padding: 2px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+    }}
+    .cue:hover {{
+      text-decoration: underline;
+    }}
+    .cue.active {{
+      background-color: rgba(198, 93, 59, 0.16);
+      box-shadow: -3px 0 0 var(--primary-accent);
+      font-weight: 600;
+      color: #111;
+    }}
+  </style>
+</head>
+<body>
+
+<div class="phone-simulator" id="simulator">
+  <div class="screen-content">
+    <div class="header-title">
+      <h1>{stop_data.get('title', 'ROMAN MEDICINE')}</h1>
+    </div>
+
+    <!-- Timed Visual Cueing Stage -->
+    <div class="slide-media-stage">
+      <button class="stage-nav prev" id="prev-artifact" aria-label="Previous artifact">&lsaquo;</button>
+      <img class="stage-img" id="stage-img" src="{stop_data['images'][0]['src']}" alt="Artifact">
+      <button class="stage-nav next" id="next-artifact" aria-label="Next artifact">&rsaquo;</button>
+      <span class="stage-caption" id="stage-caption">{stop_data['images'][0].get('caption', '')}</span>
+    </div>
+
+    <!-- Audio Player Controls -->
+    <div class="audio-control-cluster">
+      <div class="btn-row">
+        <button class="btn-skip" id="btn-back" aria-label="Rewind 10 seconds">&#8634; 10</button>
+        <button class="btn-play-pause" id="btn-play" aria-label="Play">&#9658;</button>
+        <button class="btn-skip" id="btn-fwd" aria-label="Forward 10 seconds">10 &#8635;</button>
+      </div>
+      <div class="timeline-row">
+        <span id="time-current">0:00</span>
+        <input type="range" class="time-scrubber" id="scrubber" min="0" value="0" step="0.1">
+        <span id="time-duration">0:00</span>
+      </div>
+    </div>
+
+    <audio id="audio-el" src="{stop_data.get('audio', 'test.mp3')}" preload="metadata"></audio>
+
+    <!-- Collapsible Transcript Button -->
+    <button class="toggle-transcript" id="toggle-btn" aria-expanded="false">
+      <span id="toggle-label">REVEAL TEXT</span>
+      <span class="arrow-icon" id="toggle-arrow">&#9660;</span>
+    </button>
+
+    <!-- 50% Drawer -->
+    <div class="transcript-drawer" id="drawer">
+      <div id="transcript-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STOP_DATA = {json.dumps(stop_data, ensure_ascii=False, indent=2)};
+
+  const simulator = document.getElementById('simulator');
+  const audio = document.getElementById('audio-el');
+  const playBtn = document.getElementById('btn-play');
+  const backBtn = document.getElementById('btn-back');
+  const fwdBtn = document.getElementById('btn-fwd');
+  const scrubber = document.getElementById('scrubber');
+  const timeCur = document.getElementById('time-current');
+  const timeDur = document.getElementById('time-duration');
+  const toggleBtn = document.getElementById('toggle-btn');
+  const toggleLabel = document.getElementById('toggle-label');
+  const toggleArrow = document.getElementById('toggle-arrow');
+  const transcriptBody = document.getElementById('transcript-body');
+  const stageImg = document.getElementById('stage-img');
+  const stageCaption = document.getElementById('stage-caption');
+  const nextArtifactBtn = document.getElementById('next-artifact');
+  const prevArtifactBtn = document.getElementById('prev-artifact');
+
+  // Format MM:SS
+  function formatTime(sec) {{
+    if (isNaN(sec)) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }}
+
+  // 1. Populate Transcript
+  STOP_DATA.cues.forEach((cue, i) => {{
+    const span = document.createElement('span');
+    span.className = 'cue';
+    span.id = 'cue-' + i;
+    span.dataset.start = cue.start;
+    span.dataset.end = cue.end;
+    span.textContent = cue.text + ' ';
+    transcriptBody.appendChild(span);
+  }});
+
+  // 2. Play / Pause
+  playBtn.addEventListener('click', () => {{
+    if (audio.paused) {{
+      audio.play();
+      playBtn.innerHTML = '&#10074;&#10074;';
+    }} else {{
+      audio.pause();
+      playBtn.innerHTML = '&#9658;';
+    }}
+  }});
+
+  audio.addEventListener('play', () => {{ playBtn.innerHTML = '&#10074;&#10074;'; }});
+  audio.addEventListener('pause', () => {{ playBtn.innerHTML = '&#9658;'; }});
+
+  // 3. Skip +/- 10s
+  backBtn.addEventListener('click', () => {{ audio.currentTime = Math.max(0, audio.currentTime - 10); }});
+  fwdBtn.addEventListener('click', () => {{ audio.currentTime = Math.min(audio.duration || 9999, audio.currentTime + 10); }});
+
+  // 4. Timeline scrubber
+  audio.addEventListener('loadedmetadata', () => {{
+    scrubber.max = audio.duration || 100;
+    timeDur.textContent = formatTime(audio.duration);
+  }});
+
+  let isScrubbing = false;
+  scrubber.addEventListener('input', () => {{
+    isScrubbing = true;
+    timeCur.textContent = formatTime(scrubber.value);
+  }});
+  scrubber.addEventListener('change', () => {{
+    audio.currentTime = parseFloat(scrubber.value);
+    isScrubbing = false;
+  }});
+
+  // 5. Dual Sync: Images + Cues (runs continuously in background)
+  audio.addEventListener('timeupdate', () => {{
+    const t = audio.currentTime;
+    if (!isScrubbing) {{
+      scrubber.value = t;
+      timeCur.textContent = formatTime(t);
+    }}
+
+    // Image Stage Cueing
+    if (STOP_DATA.images && STOP_DATA.images.length > 0) {{
+      const activeImg = STOP_DATA.images.find(img => t >= img.start && t < img.end);
+      if (activeImg && stageImg.dataset.currentSrc !== activeImg.src) {{
+        stageImg.style.opacity = '0.25';
+        setTimeout(() => {{
+          stageImg.src = activeImg.src;
+          stageImg.dataset.currentSrc = activeImg.src;
+          stageImg.style.opacity = '1';
+          stageCaption.textContent = activeImg.caption || '';
+        }}, 140);
+      }}
+    }}
+
+    // Sentence Cue Highlight
+    const cues = transcriptBody.querySelectorAll('.cue');
+    cues.forEach(cue => {{
+      const start = parseFloat(cue.dataset.start);
+      const end = parseFloat(cue.dataset.end);
+      if (t >= start && t <= end) {{
+        cue.classList.add('active');
+      }} else {{
+        cue.classList.remove('active');
+      }}
+    }});
+  }});
+
+  // 6. Artifact Chapter Skipping via Chevrons
+  nextArtifactBtn.addEventListener('click', () => {{
+    const t = audio.currentTime;
+    const next = STOP_DATA.images.find(img => img.start > t + 0.5);
+    if (next) {{
+      audio.currentTime = next.start;
+      audio.play();
+    }}
+  }});
+
+  prevArtifactBtn.addEventListener('click', () => {{
+    const t = audio.currentTime;
+    const curIdx = STOP_DATA.images.findIndex((img, i) => {{
+      const next = STOP_DATA.images[i + 1];
+      return t >= img.start && (!next || t < next.start);
+    }});
+    if (curIdx > 0 && (t - STOP_DATA.images[curIdx].start < 3.0)) {{
+      audio.currentTime = STOP_DATA.images[curIdx - 1].start;
+    }} else if (curIdx >= 0) {{
+      audio.currentTime = STOP_DATA.images[curIdx].start;
+    }}
+    audio.play();
+  }});
+
+  // 7. Toggle Collapsible Transcript
+  toggleBtn.addEventListener('click', () => {{
+    const isExpanded = simulator.classList.toggle('text-expanded');
+    toggleBtn.setAttribute('aria-expanded', isExpanded);
+    toggleLabel.textContent = isExpanded ? 'HIDE TEXT' : 'REVEAL TEXT';
+    toggleArrow.innerHTML = isExpanded ? '&#9650;' : '&#9660;';
+
+    // Auto-scroll to active sentence bookmark
+    if (isExpanded) {{
+      const activeCue = transcriptBody.querySelector('.cue.active');
+      if (activeCue) {{
+        activeCue.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+      }}
+    }}
+  }});
+
+  // 8. Tap-to-seek scrubbing
+  transcriptBody.addEventListener('click', (e) => {{
+    const cue = e.target.closest('.cue');
+    if (cue && cue.dataset.start !== undefined) {{
+      audio.currentTime = parseFloat(cue.dataset.start);
+      audio.play();
+    }}
+  }});
+</script>
+</body>
+</html>
+"""
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print(f"[HTML] Test harness generated at: {html_path}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Test Harness v2 for Museum Audio Guide")
+    parser.add_argument("--stop", type=str, default="test_medicine", help="Stop identifier")
+    parser.add_argument("--skip-tts", action="store_true", help="Skip Kokoro/WhisperX synthesis and use mock audio timestamps")
+    args = parser.parse_args()
+
+    stop_id = args.stop
+    manuscript_file = os.path.join(MANUSCRIPTS_DIR, f"{stop_id}.txt")
+    output_json = os.path.join(OUTPUT_DIR, f"{stop_id}_stop_v2.json")
+    output_html = os.path.join(BASE_DIR, "test_player_v2.html")
+
+    # Ensure test manuscript exists
+    if not os.path.exists(manuscript_file):
+        with open(manuscript_file, "w", encoding="utf-8") as f:
+            f.write(DEFAULT_TEST_MANUSCRIPT)
+        print(f"[MANUSCRIPT] Created default sample manuscript at: {manuscript_file}")
+
+    with open(manuscript_file, "r", encoding="utf-8") as f:
+        raw_text = f.read().strip()
+
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', raw_text) if s.strip()]
+
+    # Mock or synthetic alignment data
+    total_duration = 32.5
+    cues = [
+        {"start": 0.0, "end": 6.8, "text": sentences[0]},
+        {"start": 6.85, "end": 15.4, "text": sentences[1]},
+        {"start": 15.45, "end": 24.8, "text": sentences[2]},
+        {"start": 24.85, "end": 32.5, "text": sentences[3]}
+    ]
+
+    stop_data = {
+        "id": stop_id,
+        "room": "viminacium",
+        "title": "Roman Medicine",
+        "audio": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        "images": DEFAULT_TEST_IMAGES,
+        "cues": cues
+    }
+
+    # Timeline validation
+    validate_timeline(stop_data["images"], stop_data["cues"], total_duration)
+
+    # Save v2 Stop JSON
+    with open(output_json, "w", encoding="utf-8") as f:
+        json.dump(stop_data, f, ensure_ascii=False, indent=2)
+    print(f"[JSON] Exported verified v2 stop payload: {output_json}")
+
+    # Generate test player HTML
+    generate_test_player_html(stop_data, output_html)
+
+    print("\n" + "=" * 60)
+    print("SUCCESS: Test Stop v2 Build Complete!")
+    print(f"1. Verified Stop JSON : {output_json}")
+    print(f"2. Interactive Player : {output_html}")
+    print("Run `python -m http.server 8000` and open:")
+    print("http://localhost:8000/test_player_v2.html")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

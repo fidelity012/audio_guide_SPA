@@ -1,0 +1,48 @@
+{
+  "id": "test_medicine",
+  "room": "viminacium",
+  "title": "Roman Medicine",
+  "audio": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+  "images": [
+    {
+      "start": 0.0,
+      "end": 8.0,
+      "src": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80",
+      "caption": "Showcase 4: Roman Viminacium Medical Collection"
+    },
+    {
+      "start": 8.0,
+      "end": 18.0,
+      "src": "https://images.unsplash.com/photo-1584362917165-526a968579e8?w=600&auto=format&fit=crop&q=80",
+      "caption": "Bronze Instrumentarium Box & Surgical Probes"
+    },
+    {
+      "start": 18.0,
+      "end": 35.0,
+      "src": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&auto=format&fit=crop&q=80",
+      "caption": "Specialized Ocular & Cataract Needles"
+    }
+  ],
+  "cues": [
+    {
+      "start": 0.0,
+      "end": 6.8,
+      "text": "Viminacium, a major Roman city and military camp on the Danube, had a sophisticated medical community."
+    },
+    {
+      "start": 6.85,
+      "end": 15.4,
+      "text": "The medicus-chirurgus was buried with a rich set of surgical tools, including tweezers, probes, and a bronze instrumentarium box."
+    },
+    {
+      "start": 15.45,
+      "end": 24.8,
+      "text": "Excavated graves in the southern necropolis have yielded various specialised instruments, including scalpels, bone forceps, and ocular needles."
+    },
+    {
+      "start": 24.85,
+      "end": 32.5,
+      "text": "These finds testify to the complex surgical procedures performed here between the 2nd and 4th centuries."
+    }
+  ]
+}

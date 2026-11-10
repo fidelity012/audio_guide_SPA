@@ -30,3 +30,6 @@ NEW HTTP SERVER WITH RANGE REQUESTS
 SCRIPT WITH JOINED FUNCTIONALITIES
 
     python build_stop.py
+    python build_test_v2.py
+
+**- check manuscript folder before runing the script**

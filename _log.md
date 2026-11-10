@@ -49,3 +49,7 @@ else:
 ```shell
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --force-reinstall
 ```
+
+#### 10. 11.2026.
+
+While reading the script and question weather to show or hide text, I realized that I should update UX with images as guide topic cues, swipable for progresing trough audio timeline and toggling text visibility.
