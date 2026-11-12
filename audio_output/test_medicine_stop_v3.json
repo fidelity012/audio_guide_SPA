@@ -1,0 +1,82 @@
+{
+  "id": "test_medicine",
+  "room": "viminacium",
+  "title": "Test Medicine",
+  "audio": "audio_output/test_medicine.mp3",
+  "images": [
+    {
+      "start": 0.0,
+      "end": 24.32,
+      "src": "images/vim_knife-x3.webp",
+      "caption": "Roman Military Knives"
+    },
+    {
+      "start": 24.32,
+      "end": 49.21,
+      "src": "images/vim_medicine-x3.webp",
+      "caption": "Roman Surgical Instruments"
+    },
+    {
+      "start": 49.21,
+      "end": 74.05,
+      "src": "images/vim-coins-x2.webp",
+      "caption": "Roman Imperial Coinage"
+    }
+  ],
+  "cues": [
+    {
+      "p": 0,
+      "start": 0.47,
+      "end": 9.21,
+      "text": "Legionaries stationed along the Danube frontier carried sturdy iron knives as essential multipurpose tools for both camp life and combat."
+    },
+    {
+      "p": 0,
+      "start": 9.91,
+      "end": 15.55,
+      "text": "These blades were used for preparing rations, repairing leather gear, and close-quarters defense."
+    },
+    {
+      "p": 0,
+      "start": 16.3,
+      "end": 23.22,
+      "text": "The preserved handles and sheaths from Viminacium reflect the standardized craftsmanship of Roman military workshops."
+    },
+    {
+      "p": 1,
+      "start": 24.32,
+      "end": 32.27,
+      "text": "Roman military doctors, known as medici-chirurgi, treated battlefield injuries using specialized bronze and iron instruments."
+    },
+    {
+      "p": 1,
+      "start": 33.09,
+      "end": 41.5,
+      "text": "Excavations at Viminacium have uncovered scalpels, tweezers, double-ended probes, and delicate needles designed for intricate procedures."
+    },
+    {
+      "p": 1,
+      "start": 42.26,
+      "end": 48.15,
+      "text": "These finds demonstrate an advanced understanding of anatomy and field surgery within the imperial army."
+    },
+    {
+      "p": 2,
+      "start": 49.21,
+      "end": 56.0,
+      "text": "Coinage served as the lifeblood of the Roman frontier economy, funding legionary pay and daily trade across Moesia."
+    },
+    {
+      "p": 2,
+      "start": 56.78,
+      "end": 64.58,
+      "text": "Silver denarii and bronze sestertii minted under various emperors circulated widely through the military camp and civilian settlement."
+    },
+    {
+      "p": 2,
+      "start": 65.33,
+      "end": 73.35,
+      "text": "Beyond their monetary value, the portraits and inscriptions on these coins broadcast imperial authority to every corner of the empire."
+    }
+  ]
+}

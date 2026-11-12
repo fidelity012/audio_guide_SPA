@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Test Medicine</title>
+  <style>
+    :root {
+      --primary-accent: #C65D3B;
+      --bg-cream: #F5F2ED;
+      --card-bg: #FFFFFF;
+      --text-dark: #2E2E2E;
+      --text-muted: #7A7570;
+      --border-subtle: #E2DDD6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+    }
+    .phone-simulator {
+      width: 100%;
+      max-width: 400px;
+      height: 840px;
+      max-height: 94vh;
+      background-color: var(--bg-cream);
+      border-radius: 36px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: 8px solid #1a1a1a;
+    }
+    .screen-content {
+      padding: 24px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    .header-title { text-align: center; margin-bottom: 14px; }
+    .header-title h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--text-dark);
+      text-transform: uppercase;
+    }
+    .slide-media-stage {
+      position: relative;
+      width: 100%;
+      height: 13rem;
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: #1e1e1e;
+      margin-bottom: 14px;
+      transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .phone-simulator.text-expanded .slide-media-stage {
+      height: 6.8rem;
+      margin-bottom: 8px;
+    }
+    .stage-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.25s ease-in-out;
+    }
+    .stage-caption {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.75));
+      color: #FFF;
+      font-size: 0.75rem;
+      padding: 8px 10px 6px;
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stage-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 32px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      z-index: 5;
+    }
+    .stage-nav:hover { background: rgba(0,0,0,0.75); }
+    .stage-nav.prev { left: 8px; }
+    .stage-nav.next { right: 8px; }
+    .audio-control-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .btn-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 8px;
+    }
+    .btn-skip {
+      background: none;
+      border: 2px solid var(--primary-accent);
+      color: var(--primary-accent);
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-skip:active { background: var(--primary-accent); color: #FFF; }
+    .btn-play-pause {
+      background: var(--primary-accent);
+      border: none;
+      color: #FFF;
+      width: 58px; height: 58px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(198, 93, 59, 0.35);
+    }
+    .timeline-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .time-scrubber {
+      flex: 1;
+      accent-color: var(--primary-accent);
+      height: 4px;
+      cursor: pointer;
+    }
+    .toggle-transcript {
+      width: 100%;
+      padding: 10px 14px;
+      background: #FFF;
+      border: 2px solid var(--border-subtle);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--text-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    .transcript-drawer {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-subtle);
+      line-height: 1.6;
+      font-size: 0.95rem;
+      color: #333;
+    }
+    .phone-simulator.text-expanded .transcript-drawer { display: block; }
+    .transcript-drawer p { margin-bottom: 0.85rem; }
+    .transcript-drawer p:last-child { margin-bottom: 0; }
+    .cue {
+      transition: background-color 0.2s ease;
+      padding: 2px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .cue.active {
+      background-color: rgba(198, 93, 59, 0.16);
+      box-shadow: -3px 0 0 var(--primary-accent);
+      font-weight: 600;
+      color: #111;
+    }
+  </style>
+</head>
+<body>
+<div class="phone-simulator" id="simulator">
+  <div class="screen-content">
+    <div class="header-title"><h1>Test Medicine</h1></div>
+    <div class="slide-media-stage">
+      <button class="stage-nav prev" id="prev-artifact" aria-label="Previous artifact">&lsaquo;</button>
+      <img class="stage-img" id="stage-img" src="images/vim_knife-x3.webp" alt="Artifact">
+      <button class="stage-nav next" id="next-artifact" aria-label="Next artifact">&rsaquo;</button>
+      <span class="stage-caption" id="stage-caption">Roman Military Knives</span>
+    </div>
+    <div class="audio-control-cluster">
+      <div class="btn-row">
+        <button class="btn-skip" id="btn-back">&#8634; 10</button>
+        <button class="btn-play-pause" id="btn-play">&#9658;</button>
+        <button class="btn-skip" id="btn-fwd">10 &#8635;</button>
+      </div>
+      <div class="timeline-row">
+        <span id="time-current">0:00</span>
+        <input type="range" class="time-scrubber" id="scrubber" min="0" value="0" step="0.1">
+        <span id="time-duration">0:00</span>
+      </div>
+    </div>
+    <audio id="audio-el" src="audio_output/test_medicine.mp3" preload="metadata"></audio>
+    <button class="toggle-transcript" id="toggle-btn" aria-expanded="false">
+      <span id="toggle-label">REVEAL TEXT</span>
+      <span class="arrow-icon" id="toggle-arrow">&#9660;</span>
+    </button>
+    <div class="transcript-drawer" id="drawer">
+      <div id="transcript-body"></div>
+    </div>
+  </div>
+</div>
+<script>
+  const STOP_DATA = {
+  "id": "test_medicine",
+  "room": "viminacium",
+  "title": "Test Medicine",
+  "audio": "audio_output/test_medicine.mp3",
+  "images": [
+    {
+      "start": 0.0,
+      "end": 24.32,
+      "src": "images/vim_knife-x3.webp",
+      "caption": "Roman Military Knives"
+    },
+    {
+      "start": 24.32,
+      "end": 49.21,
+      "src": "images/vim_medicine-x3.webp",
+      "caption": "Roman Surgical Instruments"
+    },
+    {
+      "start": 49.21,
+      "end": 74.05,
+      "src": "images/vim-coins-x2.webp",
+      "caption": "Roman Imperial Coinage"
+    }
+  ],
+  "cues": [
+    {
+      "p": 0,
+      "start": 0.47,
+      "end": 9.21,
+      "text": "Legionaries stationed along the Danube frontier carried sturdy iron knives as essential multipurpose tools for both camp life and combat."
+    },
+    {
+      "p": 0,
+      "start": 9.91,
+      "end": 15.55,
+      "text": "These blades were used for preparing rations, repairing leather gear, and close-quarters defense."
+    },
+    {
+      "p": 0,
+      "start": 16.3,
+      "end": 23.22,
+      "text": "The preserved handles and sheaths from Viminacium reflect the standardized craftsmanship of Roman military workshops."
+    },
+    {
+      "p": 1,
+      "start": 24.32,
+      "end": 32.27,
+      "text": "Roman military doctors, known as medici-chirurgi, treated battlefield injuries using specialized bronze and iron instruments."
+    },
+    {
+      "p": 1,
+      "start": 33.09,
+      "end": 41.5,
+      "text": "Excavations at Viminacium have uncovered scalpels, tweezers, double-ended probes, and delicate needles designed for intricate procedures."
+    },
+    {
+      "p": 1,
+      "start": 42.26,
+      "end": 48.15,
+      "text": "These finds demonstrate an advanced understanding of anatomy and field surgery within the imperial army."
+    },
+    {
+      "p": 2,
+      "start": 49.21,
+      "end": 56.0,
+      "text": "Coinage served as the lifeblood of the Roman frontier economy, funding legionary pay and daily trade across Moesia."
+    },
+    {
+      "p": 2,
+      "start": 56.78,
+      "end": 64.58,
+      "text": "Silver denarii and bronze sestertii minted under various emperors circulated widely through the military camp and civilian settlement."
+    },
+    {
+      "p": 2,
+      "start": 65.33,
+      "end": 73.35,
+      "text": "Beyond their monetary value, the portraits and inscriptions on these coins broadcast imperial authority to every corner of the empire."
+    }
+  ]
+};
+  const simulator = document.getElementById('simulator');
+  const audio = document.getElementById('audio-el');
+  const playBtn = document.getElementById('btn-play');
+  const backBtn = document.getElementById('btn-back');
+  const fwdBtn = document.getElementById('btn-fwd');
+  const scrubber = document.getElementById('scrubber');
+  const timeCur = document.getElementById('time-current');
+  const timeDur = document.getElementById('time-duration');
+  const toggleBtn = document.getElementById('toggle-btn');
+  const toggleLabel = document.getElementById('toggle-label');
+  const toggleArrow = document.getElementById('toggle-arrow');
+  const transcriptBody = document.getElementById('transcript-body');
+  const stageImg = document.getElementById('stage-img');
+  const stageCaption = document.getElementById('stage-caption');
+  const nextArtifactBtn = document.getElementById('next-artifact');
+  const prevArtifactBtn = document.getElementById('prev-artifact');
+
+  function formatTime(sec) {
+    if (isNaN(sec)) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  const paraMap = new Map();
+  STOP_DATA.cues.forEach((cue) => {
+    const pIdx = cue.p ?? 0;
+    if (!paraMap.has(pIdx)) {
+      const pEl = document.createElement('p');
+      paraMap.set(pIdx, pEl);
+      transcriptBody.appendChild(pEl);
+    }
+    const span = document.createElement('span');
+    span.className = 'cue';
+    span.dataset.start = cue.start;
+    span.dataset.end = cue.end;
+    span.textContent = cue.text + ' ';
+    paraMap.get(pIdx).appendChild(span);
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (audio.paused) audio.play();
+    else audio.pause();
+  });
+  audio.addEventListener('play', () => { playBtn.innerHTML = '&#10074;&#10074;'; });
+  audio.addEventListener('pause', () => { playBtn.innerHTML = '&#9658;'; });
+
+  backBtn.addEventListener('click', () => { audio.currentTime = Math.max(0, audio.currentTime - 10); });
+  fwdBtn.addEventListener('click', () => { audio.currentTime = Math.min(audio.duration || 9999, audio.currentTime + 10); });
+
+  audio.addEventListener('loadedmetadata', () => {
+    scrubber.max = audio.duration || 100;
+    timeDur.textContent = formatTime(audio.duration);
+  });
+
+  let isScrubbing = false;
+  scrubber.addEventListener('input', () => {
+    isScrubbing = true;
+    timeCur.textContent = formatTime(scrubber.value);
+  });
+  scrubber.addEventListener('change', () => {
+    audio.currentTime = parseFloat(scrubber.value);
+    isScrubbing = false;
+  });
+
+  audio.addEventListener('timeupdate', () => {
+    const t = audio.currentTime;
+    if (!isScrubbing) {
+      scrubber.value = t;
+      timeCur.textContent = formatTime(t);
+    }
+    if (STOP_DATA.images && STOP_DATA.images.length > 0) {
+      const activeImg = STOP_DATA.images.find(img => t >= img.start && t <= img.end);
+      if (activeImg && stageImg.dataset.currentSrc !== activeImg.src) {
+        stageImg.style.opacity = '0.25';
+        setTimeout(() => {
+          stageImg.src = activeImg.src;
+          stageImg.dataset.currentSrc = activeImg.src;
+          stageImg.style.opacity = '1';
+          stageCaption.textContent = activeImg.caption || '';
+        }, 140);
+      }
+    }
+    transcriptBody.querySelectorAll('.cue').forEach(cue => {
+      const start = parseFloat(cue.dataset.start);
+      const end = parseFloat(cue.dataset.end);
+      cue.classList.toggle('active', t >= start && t <= end);
+    });
+  });
+
+  nextArtifactBtn.addEventListener('click', () => {
+    const next = STOP_DATA.images.find(img => img.start > audio.currentTime + 0.5);
+    if (next) { audio.currentTime = next.start; audio.play(); }
+  });
+
+  prevArtifactBtn.addEventListener('click', () => {
+    const t = audio.currentTime;
+    const curIdx = STOP_DATA.images.findIndex((img, i) => {
+      const next = STOP_DATA.images[i + 1];
+      return t >= img.start && (!next || t < next.start);
+    });
+    if (curIdx > 0 && (t - STOP_DATA.images[curIdx].start < 3.0)) {
+      audio.currentTime = STOP_DATA.images[curIdx - 1].start;
+    } else if (curIdx >= 0) {
+      audio.currentTime = STOP_DATA.images[curIdx].start;
+    }
+    audio.play();
+  });
+
+  toggleBtn.addEventListener('click', () => {
+    const isExpanded = simulator.classList.toggle('text-expanded');
+    toggleBtn.setAttribute('aria-expanded', isExpanded);
+    toggleLabel.textContent = isExpanded ? 'HIDE TEXT' : 'REVEAL TEXT';
+    toggleArrow.innerHTML = isExpanded ? '&#9650;' : '&#9660;';
+    if (isExpanded) {
+      const activeCue = transcriptBody.querySelector('.cue.active');
+      if (activeCue) activeCue.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+
+  transcriptBody.addEventListener('click', (e) => {
+    const cue = e.target.closest('.cue');
+    if (cue && cue.dataset.start !== undefined) {
+      audio.currentTime = parseFloat(cue.dataset.start);
+      audio.play();
+    }
+  });
+</script>
+</body>
+</html>
