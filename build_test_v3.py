@@ -1,13 +1,13 @@
 """
 build_test_v3.py - End-to-End Test Builder for Museum Audio Guide v3
 Features:
-1. Auto-detects hardware (CUDA float16/int8 vs CPU int8)[cite: 12]
-2. Reads manuscripts/<stop>.txt & lexicon/lexicon.json[cite: 12, 26]
+1. Auto-detects hardware (CUDA float16/int8 vs CPU int8)[cite: 19]
+2. Reads manuscripts/<stop>.txt & lexicon/lexicon.json[cite: 19]
 3. Parses inline [IMG: src | caption] tags, recording anchor word indices and stripping tags before TTS/display
-4. Synthesizes 96k mono MP3 via Kokoro-82M & FFmpeg[cite: 12, 21]
-5. Runs WhisperX forced alignment + difflib global opcode mapping[cite: 12, 13, 22]
+4. Synthesizes 96k mono MP3 via Kokoro-82M & FFmpeg[cite: 19]
+5. Runs WhisperX forced alignment + difflib global opcode mapping[cite: 19]
 6. Resolves [IMG: ...] tags to exact spoken start/end timestamps
-7. Generates test_player_v3.html with:
+7. Generates full-width mobile test_player_v3.html with:
    - Timed Visual Cueing Stage + < / > artifact chapter skipping
    - Lower Thumb Zone: [-10s] [Play/Pause] [+10s] + Audio Timeline Scrubber
    - 50% Collapsible Transcript Drawer ("REVEAL TEXT" / "HIDE TEXT") with dynamic hero compression & tap-to-seek
@@ -42,7 +42,7 @@ os.makedirs(MANUSCRIPTS_DIR, exist_ok=True)
 SAMPLE_RATE = 24000
 BITRATE = "96k"
 
-# Dynamic hardware selection[cite: 12]
+# Dynamic hardware selection[cite: 19]
 if torch.cuda.is_available():
     DEVICE = "cuda"
     major_cc = torch.cuda.get_device_capability()[0]
@@ -64,7 +64,7 @@ Coinage served as the lifeblood of the Roman frontier economy, funding legionary
 """
 
 # =====================================================================
-# 1. LEXICON & TEXT NORMALIZATION[cite: 12, 26]
+# 1. LEXICON & TEXT NORMALIZATION[cite: 19]
 # =====================================================================
 ROMAN_ORDINALS = {
     'I': 'First', 'II': 'Second', 'III': 'Third', 'IV': 'Fourth',
@@ -212,7 +212,7 @@ def parse_manuscript_with_images(raw_text: str):
     return clean_text, image_markers
 
 # =====================================================================
-# 3. AUDIO ENCODING & SENTENCE SPLITTING[cite: 12]
+# 3. AUDIO ENCODING & SENTENCE SPLITTING[cite: 19]
 # =====================================================================
 def save_mp3(audio_data: np.ndarray, output_path: str, sample_rate: int = SAMPLE_RATE, bitrate: str = BITRATE):
     if shutil.which("ffmpeg"):
@@ -255,7 +255,7 @@ def split_sentences(para: str) -> list:
     return sentences
 
 # =====================================================================
-# 4. HTML TEST HARNESS GENERATOR (v3 UI)
+# 4. HTML TEST HARNESS GENERATOR (v3 FULL-WIDTH MOBILE UI)
 # =====================================================================
 def generate_test_player_html(stop_data, html_path):
     default_img = stop_data['images'][0]['src'] if stop_data['images'] else ''
@@ -279,31 +279,27 @@ def generate_test_player_html(stop_data, html_path):
     * {{ box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }}
     body {{
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #222;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 10px;
+      background-color: var(--bg-cream);
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
     }}
     .phone-simulator {{
       width: 100%;
-      max-width: 400px;
-      height: 840px;
-      max-height: 94vh;
+      height: 100dvh;
       background-color: var(--bg-cream);
-      border-radius: 36px;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
       display: flex;
       flex-direction: column;
       position: relative;
-      border: 8px solid #1a1a1a;
+      overflow: hidden;
     }}
     .screen-content {{
-      padding: 24px 20px 16px;
+      padding: 20px 16px 16px;
       display: flex;
       flex-direction: column;
+      width: 100%;
       height: 100%;
       overflow: hidden;
     }}
@@ -354,7 +350,7 @@ def generate_test_player_html(stop_data, html_path):
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      width: 32px; height: 32px;
+      width: 34px; height: 34px;
       background: rgba(0,0,0,0.45);
       border: 1px solid rgba(255,255,255,0.3);
       color: #fff;
@@ -363,7 +359,7 @@ def generate_test_player_html(stop_data, html_path):
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       z-index: 5;
     }}
     .stage-nav:hover {{ background: rgba(0,0,0,0.75); }}
@@ -644,7 +640,7 @@ def generate_test_player_html(stop_data, html_path):
 # 5. MAIN PIPELINE EXECUTION
 # =====================================================================
 def main():
-    parser = argparse.ArgumentParser(description="Build & Test v3 Stop with inline [IMG: ...] tag parsing")
+    parser = argparse.ArgumentParser(description="Build & Test v3 Stop with full-width mobile UI")
     parser.add_argument("--stop", type=str, default="test_medicine", help="Manuscript filename (without .txt)")
     parser.add_argument("--voice", type=str, default="af_bella", help="Kokoro voice preset")
     args = parser.parse_args()
@@ -671,7 +667,7 @@ def main():
     lexicon = load_lexicon()
     normalized_text = process_text(clean_text, lexicon)
 
-    # 2. Kokoro TTS Synthesis[cite: 12, 21]
+    # 2. Kokoro TTS Synthesis[cite: 19]
     print(f"[{stop_id.upper()}] Synthesizing narration via Kokoro-82M ({args.voice}) on {DEVICE}...")
     tts_pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M', device=DEVICE)
     chunks = [chunk for _, _, chunk in tts_pipeline(normalized_text, voice=args.voice, speed=1.0)]
@@ -682,7 +678,7 @@ def main():
     save_mp3(full_audio, mp3_path, sample_rate=SAMPLE_RATE, bitrate=BITRATE)
     print(f"[{stop_id.upper()}] Saved MP3: {mp3_path}")
 
-    # 3. WhisperX Forced Alignment + Global Opcode Matching[cite: 12, 13, 22]
+    # 3. WhisperX Forced Alignment + Global Opcode Matching[cite: 19]
     print(f"[{stop_id.upper()}] Running WhisperX alignment on {DEVICE} ({COMPUTE_TYPE})...")
     paragraphs = [p.strip() for p in clean_text.split("\n\n") if p.strip()]
     ms_words_norm = []
@@ -780,7 +776,7 @@ def main():
         json.dump(stop_data, f, ensure_ascii=False, indent=2)
 
     generate_test_player_html(stop_data, output_html)
-    print(f"\n[DONE] Built real audio ({audio_duration}s) with {len(images)} inline image triggers.")
+    print(f"\n[DONE] Built full-width mobile player ({audio_duration}s) with {len(images)} inline image triggers.")
     print("Open: http://localhost:8000/test_player_v3.html")
 
 if __name__ == "__main__":

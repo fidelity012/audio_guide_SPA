@@ -6,12 +6,12 @@
   "images": [
     {
       "start": 0.0,
-      "end": 24.32,
+      "end": 24.34,
       "src": "images/vim_knife-x3.webp",
       "caption": "Roman Military Knives"
     },
     {
-      "start": 24.32,
+      "start": 24.34,
       "end": 49.21,
       "src": "images/vim_medicine-x3.webp",
       "caption": "Roman Surgical Instruments"
@@ -33,7 +33,7 @@
     {
       "p": 0,
       "start": 9.91,
-      "end": 15.55,
+      "end": 15.56,
       "text": "These blades were used for preparing rations, repairing leather gear, and close-quarters defense."
     },
     {
@@ -44,7 +44,7 @@
     },
     {
       "p": 1,
-      "start": 24.32,
+      "start": 24.34,
       "end": 32.27,
       "text": "Roman military doctors, known as medici-chirurgi, treated battlefield injuries using specialized bronze and iron instruments."
     },
@@ -57,7 +57,7 @@
     {
       "p": 1,
       "start": 42.26,
-      "end": 48.15,
+      "end": 48.18,
       "text": "These finds demonstrate an advanced understanding of anatomy and field surgery within the imperial army."
     },
     {
@@ -74,7 +74,7 @@
     },
     {
       "p": 2,
-      "start": 65.33,
+      "start": 65.32,
       "end": 73.35,
       "text": "Beyond their monetary value, the portraits and inscriptions on these coins broadcast imperial authority to every corner of the empire."
     }
