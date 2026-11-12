@@ -10,7 +10,7 @@ __pycache__/
 
 # Temporary / Test Audio Outputs
 test_*.wav
-test_*.mp3
+# test_*.mp3
 output.wav
 output.mp3
 
